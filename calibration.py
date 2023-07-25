@@ -127,12 +127,22 @@ def main():
     """Основная функция для выполнения калибровки камеры."""
     calibration = CameraCalibration()
 
-    img1 = cv2.imread("images/left.jpg")
-    k1 = calibration.get_calibration("left", "LEFT_CAM_2K")
+    img1 = cv2.imread("left_ZED/zed_2i_24.jpeg")
+    k1 = [
+        [1065.3599550104575, 0, 985.2083030859469],
+        [0, 1067.2483601056565, 551.5336067892251],
+        [0, 0, 1]
+    ]
+    k1 = np.array(k1)
 
-    img2 = cv2.imread("images/right.jpg")
-    k2 = calibration.get_calibration("left_camera", "RIGHT_CAM_2K")
-
+    img2 = cv2.imread("right_ZED/zed_2i_24.jpeg")
+    k2 = [
+        [1066.7580977730422, 0, 982.7728832430806],
+        [0, 1065.419847937496, 538.0306241114688],
+        [0, 0, 1]
+    ]
+    k2 = np.array(k2)
+    
     calibration.find_relative_position_and_orientation(img1, img2, k1, k2)
     calibration.write_to_config("config.conf")
 

@@ -23,7 +23,7 @@ class OneCameraCalibration:
         string: Строка которая будет являться объектом конфига
 
         """
-        CHECKERBOARD = (10, 6)
+        CHECKERBOARD = (6, 9)
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
         objpoints = []  # 3d точка в реальном мире
@@ -38,7 +38,6 @@ class OneCameraCalibration:
                 img = cv2.imread(img_path)
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 ret, corners = cv2.findChessboardCorners(gray, CHECKERBOARD, None)
-
                 # Если найдено, добавьте точки объекта, точки изображения (после их уточнения)
                 if ret:
                     objpoints.append(objp)
@@ -57,7 +56,7 @@ class OneCameraCalibration:
                                                            gray.shape[::-1],
                                                            None,
                                                            None)
-
+        print(dist)
         self._config[string] = {}
         self._config[string]['fx'] = str(mtx[0, 0])
         self._config[string]['fy'] = str(mtx[1, 1])
@@ -69,16 +68,53 @@ class OneCameraCalibration:
         self._config[string]['p2'] = str(dist[0][3])
         self._config[string]['k3'] = str(dist[0][4])
 
+        self.get_angles(mtx, dist, objpoints, imgpoints)
+
         with open("left_camera_config.conf", 'w') as configfile:
             self._config.write(configfile)
         return mtx
+    
+    def get_angles(self, camera_matrix, dist_coeffs, object_points, image_points):
+
+        object_points = np.array(object_points)
+        image_points = np.array(image_points)
+        print(object_points)
+        print(image_points)
+
+        print(type(object_points[0]))
+        print(type(image_points[0]))
+
+        # Пример кода для удаления искажения
+        image = cv2.imread("left_ZED/zed_2i_24.jpeg")  # Замените на ваше тестовое изображение
+        undistorted_image = cv2.undistort(image, camera_matrix, dist_coeffs)
+
+        if len(object_points) == len(image_points):
+            ret, rvec, tvec = cv2.solvePnP(object_points, image_points, camera_matrix, dist_coeffs)
+
+            # Ваш код ниже ...
+        else:
+            print("Не соответствующие точки для cv2.solvePnP()")
+
+        # Пример кода для преобразования вектора вращения в матрицу вращения
+        rotation_matrix, _ = cv2.Rodrigues(rvec)
+
+        # Пример кода для извлечения углов
+        vertical_angle = np.arctan2(rotation_matrix[1, 0], rotation_matrix[0, 0])
+        horizontal_angle = np.arctan2(rotation_matrix[2, 0], rotation_matrix[0, 0])
+
+        # Перевод углов в градусы
+        vertical_angle = np.degrees(vertical_angle)
+        horizontal_angle = np.degrees(horizontal_angle)
+
+        print(f"Vertical angle: {vertical_angle}")
+        print(f"Horizontal angle: {horizontal_angle}")
 
 
 def main():
     """Основная функция для выполнения калибровки камеры."""
     calibration = OneCameraCalibration()
 
-    k1 = calibration.get_calibration("left", "LEFT_CAM_FHD")
+    k1 = calibration.get_calibration("left_ZED", "LEFT_CAM_FHD")
     print(k1)
 
 
