@@ -2,6 +2,7 @@ import configparser
 import cv2
 import numpy as np
 import os
+import pickle
 
 
 class OneCameraCalibration:
@@ -23,7 +24,7 @@ class OneCameraCalibration:
         string: Строка которая будет являться объектом конфига
 
         """
-        CHECKERBOARD = (6, 9)
+        CHECKERBOARD = (10, 6)
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
         objpoints = []  # 3d точка в реальном мире
@@ -33,7 +34,8 @@ class OneCameraCalibration:
         objp[:, :2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
         objp *= 4
         for filename in os.listdir(folder):
-            if filename.endswith(".jpeg"):  # вы можете указать другие форматы изображений
+            if filename.endswith(".png"):  # вы можете указать другие форматы изображений
+                print("find...")
                 img_path = os.path.join(folder, filename)
                 img = cv2.imread(img_path)
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -41,13 +43,18 @@ class OneCameraCalibration:
                 # Если найдено, добавьте точки объекта, точки изображения (после их уточнения)
                 if ret:
                     objpoints.append(objp)
-                    corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+                    #corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
                     imgpoints.append(corners)
 
                     # Рисуем и отображаем углы
-                    cv2.drawChessboardCorners(img, (7, 6), corners2, ret)
-                    # cv2.imshow('img', img)
-                    # cv2.waitKey(500)
+                    #cv2.drawChessboardCorners(img, (7, 6), corners2, ret)
+                    #cv2.namedWindow("img", cv2.WINDOW_NORMAL)
+                    #cv2.resizeWindow("img", 1600, 1200)
+                    #cv2.imshow('img', img)
+                    #cv2.waitKey(500)
+                    print(f"find!!! {filename}")
+                else:
+                    print(f"Corners not found {filename}")
 
         cv2.destroyAllWindows()
 
@@ -68,24 +75,32 @@ class OneCameraCalibration:
         self._config[string]['p2'] = str(dist[0][3])
         self._config[string]['k3'] = str(dist[0][4])
 
+
+        with open('points.pkl', 'wb') as f:
+            pickle.dump((objpoints, imgpoints), f)
+
+        with open("air_camera_config.conf", 'w') as configfile:
+            self._config.write(configfile)
+
         self.get_angles(mtx, dist, objpoints, imgpoints)
 
-        with open("left_camera_config.conf", 'w') as configfile:
-            self._config.write(configfile)
         return mtx
     
     def get_angles(self, camera_matrix, dist_coeffs, object_points, image_points):
 
         object_points = np.array(object_points)
         image_points = np.array(image_points)
-        print(object_points)
-        print(image_points)
+        object_points = np.float32(object_points)
+        image_points = np.float32(image_points)
 
-        print(type(object_points[0]))
-        print(type(image_points[0]))
+        #print(object_points)
+        #print(image_points)
+
+        #print(type(object_points[0]))
+        #print(type(image_points[0]))
 
         # Пример кода для удаления искажения
-        image = cv2.imread("left_ZED/zed_2i_24.jpeg")  # Замените на ваше тестовое изображение
+        image = cv2.imread("air/frame17.png")  # Замените на ваше тестовое изображение
         undistorted_image = cv2.undistort(image, camera_matrix, dist_coeffs)
 
         if len(object_points) == len(image_points):
@@ -114,7 +129,7 @@ def main():
     """Основная функция для выполнения калибровки камеры."""
     calibration = OneCameraCalibration()
 
-    k1 = calibration.get_calibration("left_ZED", "LEFT_CAM_FHD")
+    k1 = calibration.get_calibration("air", "FRONT_CAMERA")
     print(k1)
 
 

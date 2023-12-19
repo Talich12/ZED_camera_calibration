@@ -3,3 +3,9 @@
 /left
 /left_ZED
 /right_ZED
+/air
+/water
+/right
+**.conf
+*.pkl
+*.mp4
